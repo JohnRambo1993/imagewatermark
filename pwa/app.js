@@ -1,31 +1,54 @@
-document.getElementById('watermarkForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
+document.addEventListener('DOMContentLoaded', () => {
+    const watermarkForm = document.getElementById('watermarkForm');
 
-    const fileInput = document.getElementById('imageFile');
-    const useWithInput = document.getElementById('useWith');
+    watermarkForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-    if (!fileInput.files || fileInput.files.length === 0) {
-        alert('Please select an image file.');
-        return;
-    }
+        const fileInput = document.getElementById('imageFile');
+        const useWithInput = document.getElementById('useWith');
 
-    const file = fileInput.files[0];
-    const useWith = useWithInput.value.trim();
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select an image file.');
+            return;
+        }
 
-    if (!useWith) {
-        alert('Please enter company/organization name.');
-        return;
-    }
+        const file = fileInput.files[0];
+        const useWith = useWithInput.value.trim();
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            processWatermark(img, file.name, useWith);
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+        if (!useWith) {
+            alert('Please enter company/organization name.');
+            return;
+        }
+
+        try {
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = function() {
+                processWatermark(img, file.name, useWith);
+                URL.revokeObjectURL(objectUrl);
+            };
+            img.onerror = function() {
+                alert('Failed to load selected image file.');
+                URL.revokeObjectURL(objectUrl);
+            };
+            img.src = objectUrl;
+        } catch (err) {
+            console.error('Error reading image:', err);
+            // Fallback to FileReader if ObjectURL fails
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    processWatermark(img, file.name, useWith);
+                };
+                img.onerror = function() {
+                    alert('Failed to load selected image file.');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 });
 
 function processWatermark(img, originalFilename, useWith) {

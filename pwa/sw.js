@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-pwa-v2';
+const CACHE_NAME = 'watermark-pwa-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -32,21 +32,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).catch(() => caches.match('./index.html'));
-      })
-    );
-    return;
-  }
+  // Ignore non-GET requests
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request).catch(() => caches.match('./index.html'));
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).catch((err) => {
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html', { ignoreSearch: true });
+        }
+        return Promise.reject(err);
+      });
     })
   );
 });
